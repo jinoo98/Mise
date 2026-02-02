@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mise 요리의 준비를 위한 모든 것 - 단가 계산</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Custom Theme Variables -->
+    <style>
+        :root {
+            --background: #FAFBFC;
+            --foreground: #0f172a;
+            --card: #ffffff;
+            --card-foreground: #0f172a;
+            --popover: #ffffff;
+            --popover-foreground: #0f172a;
+            --primary: #E11D48;
+            --primary-foreground: #ffffff;
+            --secondary: #FEF2F2;
+            --secondary-foreground: #991B1B;
+            --muted: #f1f5f9;
+            --muted-foreground: #64748b;
+            --accent: #f1f5f9;
+            --accent-foreground: #0f172a;
+            --destructive: #ef4444;
+            --destructive-foreground: #f8fafc;
+            --border: #e2e8f0;
+            --input: #e2e8f0;
+            --ring: #E11D48;
+            --radius: 0.75rem;
+        }
+
+        body {
+            background-color: var(--background);
+            background-image: linear-gradient(to bottom right, #FAFBFC, #F3F4F6);
+            color: var(--foreground);
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            min-height: 100vh;
+        }
+
+        .card {
+            background-color: var(--card);
+            color: var(--card-foreground);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        .tab-active {
+            background-color: white;
+            color: var(--foreground);
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+        }
+
+        .tab-inactive {
+            color: var(--muted-foreground);
+        }
+
+        .tab-inactive:hover {
+            color: var(--foreground);
+        }
+
+        input[type="range"] {
+            accent-color: var(--primary);
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+    </style>
+</head>
+
+<body class="pb-20">
+    <!-- Information Modal (Ported from index.html) -->
+    <div id="recipeModal"
+        class="fixed inset-0 bg-black bg-opacity-50 hidden z-[110] flex items-center justify-center p-4">
+        <div
+            class="bg-white rounded-[2rem] max-w-lg w-full p-8 shadow-2xl overflow-y-auto max-h-[80vh] relative border-none">
+            <div class="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+                <h2 id="modalTitle" class="text-2xl font-black text-slate-800"></h2>
+                <button onclick="closeRecipeModal()"
+                    class="text-slate-400 hover:text-[#E11D48] text-2xl p-2 transition-colors">&times;</button>
+            </div>
+            <div id="modalContent" class="text-slate-600 whitespace-pre-wrap leading-relaxed font-medium">
+            </div>
+            <div class="mt-8 text-right">
+                <button onclick="closeRecipeModal()"
+                    class="bg-slate-800 text-white px-8 py-3 rounded-2xl font-black text-sm hover:bg-[#E11D48] transition-all shadow-lg">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50 shadow-none">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 shadow-none">
+            <div class="flex items-center gap-3">
+                <div class="items-center">
+                    <img src="{% static 'icon/Mise_Icon.png' %}" class="w-[45px] h-[45px] inline-block">
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-red-600">Mise</h1>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Mise En Place - 요리의 준비를 위한
+                        모든 것</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- Navigation Tabs -->
+        <div class="w-full mb-8 shadow-none">
+            <div class="grid w-full grid-cols-3 bg-gray-100 p-1 rounded-lg mb-6 shadow-none">
+                <a href="{% url 'index' %}"
+                    class="tab-inactive flex flex-col items-center justify-center gap-1 py-3 rounded-xl text-xs font-bold transition-all">
+                    <i data-lucide="chef-hat" class="w-4 h-4"></i>
+                    <span>레시피 추출</span>
+                </a>
+                <a href="{% url 'price' %}"
+                    class="tab-inactive flex flex-col items-center justify-center gap-1 py-3 rounded-xl text-xs font-bold transition-all">
+                    <i data-lucide="calculator" class="w-4 h-4"></i>
+                    <span class="text-slate-900">단가 계산</span>
+                </a>
+                <a href="{% url 'matching' %}"
+                    class="tab-active flex flex-col items-center justify-center gap-1 py-3 rounded-xl text-xs font-bold transition-all">
+                    <i data-lucide="cooking-pot" class="w-4 h-4 text-[#E11D48]"></i>
+                    <span>재료 매칭</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Content: Matching -->
+        <div id="content-match" class="space-y-8 animate-fade-in">
+
+            <!-- Available Ingredients Input -->
+            <div class="card p-8 border-none bg-white">
+                <div class="mb-8">
+                    <h2 class="text-2xl font-black text-slate-800 flex items-center gap-3">
+                        <i data-lucide="package" class="w-7 h-7 text-[#E11D48]"></i>
+                        어떤 재료가 남아있나요?
+                    </h2>
+                    <p class="text-slate-500 font-medium mt-1 ml-10">보유한 재료를 입력하면 만들 수 있는 레시피를 매칭해 드립니다.</p>
+                </div>
+
+                <div class="space-y-6">
+                    <div class="flex gap-2 relative group w-full">
+                        <i data-lucide="plus-circle"
+                            class="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-slate-300 group-focus-within:text-[#E11D48] transition-colors"></i>
+
+                        <input type="text" id="ingredient-input" placeholder="재료 입력 후 Enter"
+                            class="flex-1 pl-10 sm:pl-12 pr-2 sm:pr-6 h-12 sm:h-14 text-sm sm:text-lg bg-slate-50 border-2 border-transparent rounded-xl sm:rounded-2xl focus:outline-none focus:border-[#E11D48] focus:bg-white transition-all shadow-inner min-w-0">
+
+                        <button type="button" onclick="addIngredient()"
+                            class="bg-[#E11D48] text-white px-4 sm:px-8 rounded-xl sm:rounded-2xl font-black hover:opacity-90 transition-all shadow-lg shadow-red-100 flex items-center justify-center gap-1 sm:gap-2 whitespace-nowrap">
+                            <i data-lucide="plus" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+                            <span class="text-sm sm:text-base">추가</span>
+                        </button>
+                    </div>
+
+                    <!-- Quick Add Buttons -->
+                    <div class="ml-1">
+                        <div class="flex flex-wrap gap-2 items-center">
+                            <span class="text-xs font-bold text-gray-400 mr-2 uppercase tracking-widest">고기/단백질:</span>
+                            <button onclick="quickAddIngredient('돼지고기')"
+                                class="text-xs px-3 py-1.5 bg-white border border-gray-200 rounded-lg font-medium text-gray-600 hover:border-red-500 hover:text-red-500 transition-all">돼지고기</button>
+                            <button onclick="quickAddIngredient('소고기')"
+                                class="text-xs px-3 py-1.5 bg-white border border-gray-200 rounded-lg font-medium text-gray-600 hover:border-red-500 hover:text-red-500 transition-all">소고기</button>
+                            <button onclick="quickAddIngredient('닭고기')"
+                                class="text-xs px-3 py-1.5 bg-white border border-gray-200 rounded-lg font-medium text-gray-600 hover:border-red-500 hover:text-red-500 transition-all">닭고기</button>
+                            <button onclick="quickAddIngredient('계란')"
+                                class="text-xs px-3 py-1.5 bg-white border border-gray-200 rounded-lg font-medium text-gray-600 hover:border-red-500 hover:text-red-500 transition-all">계란</button>
+                            <button onclick="quickAddIngredient('두부')"
+                                class="text-xs px-3 py-1.5 bg-white border border-gray-200 rounded-lg font-medium text-gray-600 hover:border-red-500 hover:text-red-500 transition-all">두부</button>
+                            <button onclick="quickAddIngredient('참치')"
+                                class="text-xs px-3 py-1.5 bg-white border border-gray-200 rounded-lg font-medium text-gray-600 hover:border-red-500 hover:text-red-500 transition-all">참치</button>
+                        </div>
+                        <div class="flex flex-wrap gap-2 items-center">
+                            <span class="text-xs font-bold text-gray-400 mr-2 uppercase tracking-widest">야채/기타:</span>
+                            <button onclick="quickAddIngredient('양파')"
+                                class="text-xs px-3 py-1.5 bg-white border border-gray-200 rounded-lg font-medium text-gray-600 hover:border-red-500 hover:text-red-500 transition-all">양파</button>
+                            <button onclick="quickAddIngredient('대파')"
+                                class="text-xs px-3 py-1.5 bg-white border border-gray-200 rounded-lg font-medium text-gray-600 hover:border-red-500 hover:text-red-500 transition-all">대파</button>
+                            <button onclick="quickAddIngredient('마늘')"
+                                class="text-xs px-3 py-1.5 bg-white border border-gray-200 rounded-lg font-medium text-gray-600 hover:border-red-500 hover:text-red-500 transition-all">마늘</button>
+                            <button onclick="quickAddIngredient('감자')"
+                                class="text-xs px-3 py-1.5 bg-white border border-gray-200 rounded-lg font-medium text-gray-600 hover:border-red-500 hover:text-red-500 transition-all">감자</button>
+                            <button onclick="quickAddIngredient('당근')"
+                                class="text-xs px-3 py-1.5 bg-white border border-gray-200 rounded-lg font-medium text-gray-600 hover:border-red-500 hover:text-red-500 transition-all">당근</button>
+                            <button onclick="quickAddIngredient('김치')"
+                                class="text-xs px-3 py-1.5 bg-white border border-gray-200 rounded-lg font-medium text-gray-600 hover:border-red-500 hover:text-red-500 transition-all">김치</button>
+                            <button onclick="quickAddIngredient('어묵')"
+                                class="text-xs px-3 py-1.5 bg-white border border-gray-200 rounded-lg font-medium text-gray-600 hover:border-red-500 hover:text-red-500 transition-all">어묵</button>
+                        </div>
+                        <div class="flex flex-wrap gap-2 items-center">
+                            <span class="text-xs font-bold text-gray-400 mr-2 uppercase tracking-widest">양념류:</span>
+                            <button onclick="quickAddIngredient('고추장')"
+                                class="text-xs px-3 py-1.5 bg-white border border-gray-200 rounded-lg font-medium text-gray-600 hover:border-red-500 hover:text-red-500 transition-all">고추장</button>
+                            <button onclick="quickAddIngredient('된장')"
+                                class="text-xs px-3 py-1.5 bg-white border border-gray-200 rounded-lg font-medium text-gray-600 hover:border-red-500 hover:text-red-500 transition-all">된장</button>
+                            <button onclick="quickAddIngredient('간장')"
+                                class="text-xs px-3 py-1.5 bg-white border border-gray-200 rounded-lg font-medium text-gray-600 hover:border-red-500 hover:text-red-500 transition-all">간장</button>
+                            <button onclick="quickAddIngredient('설탕')"
+                                class="text-xs px-3 py-1.5 bg-white border border-gray-200 rounded-lg font-medium text-gray-600 hover:border-red-500 hover:text-red-500 transition-all">설탕</button>
+                            <button onclick="quickAddIngredient('고춧가루')"
+                                class="text-xs px-3 py-1.5 bg-white border border-gray-200 rounded-lg font-medium text-gray-600 hover:border-red-500 hover:text-red-500 transition-all">고춧가루</button>
+                            <button onclick="quickAddIngredient('참기름')"
+                                class="text-xs px-3 py-1.5 bg-white border border-gray-200 rounded-lg font-medium text-gray-600 hover:border-red-500 hover:text-red-500 transition-all">참기름</button>
+                        </div>
+                    </div>
+
+                    <div id="user-ingredients-container"
+                        class="flex flex-wrap gap-3 min-h-[120px] p-6 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                        <div class="w-full flex flex-col items-center justify-center text-slate-400 py-4"
+                            id="empty-ingredients-message">
+                            <i data-lucide="info" class="w-10 h-10 text-slate-200 mb-2"></i>
+                            <p class="font-bold">재료를 입력하면 자동으로 레시피를 추천해 드립니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2 sm:gap-3 w-full">
+                        <button type="button" onclick="findRecipes()"
+                            class="flex-[2] sm:flex-1 bg-[#E11D48] text-white py-3 sm:py-4 rounded-xl sm:rounded-2xl text-base sm:text-lg font-black flex items-center justify-center gap-2 sm:gap-3 shadow-xl shadow-red-100 hover:scale-[1.01] active:scale-[0.99] transition-all whitespace-nowrap">
+                            <i data-lucide="search" class="w-5 h-5 sm:w-6 sm:h-6"></i>
+                            <span>맞춤 레시피 찾기</span>
+                        </button>
+
+                        <button type="button" onclick="clearIngredients()"
+                            class="flex-1 sm:flex-none px-4 sm:px-8 bg-slate-200 text-slate-600 rounded-xl sm:rounded-2xl text-base sm:text-lg font-black hover:bg-slate-300 transition-all whitespace-nowrap flex-shrink-0">
+                            초기화
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recipe Recommendations -->
+            <div id="recipe-recommendations" class="hidden space-y-6">
+                <div class="flex items-center justify-between px-2">
+                    <h3 class="text-xl font-black text-slate-800 flex items-center gap-2">
+                        <i data-lucide="sparkles" class="w-6 h-6 text-[#E11D48]"></i>
+                        추천 레시피
+                    </h3>
+                    <span id="recommendation-count"
+                        class="text-sm font-black text-slate-400 uppercase tracking-widest"></span>
+                </div>
+
+                <div id="recipe-cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Recipe cards here -->
+                </div>
+            </div>
+
+            <!-- No Results Message -->
+            <div id="no-recommendations" class="hidden card p-16 text-center border-none shadow-none bg-transparent">
+                <div
+                    class="w-20 h-20 bg-slate-100 rounded-3xl flex items-center justify-center text-slate-300 mx-auto mb-6">
+                    <i data-lucide="search-x" class="w-10 h-10"></i>
+                </div>
+                <h3 class="text-2xl font-black text-slate-800 mb-2">추천할 레시피가 없습니다</h3>
+                <p class="text-slate-400 font-medium mb-8">
+                    더 많은 재료를 추가하면 다양한 요리를<br>매칭해 드릴 수 있습니다.
+                </p>
+                <button onclick="document.getElementById('ingredient-input').focus()"
+                    class="bg-white border-2 border-slate-200 text-slate-600 px-8 py-3 rounded-2xl font-black hover:border-[#E11D48] hover:text-[#E11D48] transition-all">
+                    재료 더 추가하기
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    {{ recipes_data|json_script:"recipes-data" }}
+
+    <script>
+        // Global Lucide Init
+        lucide.createIcons();
+
+        // State
+        let userIngredients = [];
+        const recipeDatabase = JSON.parse(document.getElementById('recipes-data').textContent);
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const input = document.getElementById('ingredient-input');
+            if (input) {
+                input.addEventListener('keypress', function (e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addIngredient();
+                    }
+                });
+            }
+        });
+
+        function addIngredient() {
+            const input = document.getElementById('ingredient-input');
+            const val = input.value.trim();
+
+            if (val && !userIngredients.includes(val)) {
+                userIngredients.push(val);
+                renderUserIngredients();
+                input.value = '';
+            } else if (val) {
+                alert('이미 추가된 재료입니다.');
+            }
+        }
+
+        function quickAddIngredient(val) {
+            if (!userIngredients.includes(val)) {
+                userIngredients.push(val);
+                renderUserIngredients();
+            }
+        }
+
+        function removeIngredient(val) {
+            userIngredients = userIngredients.filter(i => i !== val);
+            renderUserIngredients();
+            if (userIngredients.length === 0) {
+                document.getElementById('recipe-recommendations').classList.add('hidden');
+                document.getElementById('no-recommendations').classList.add('hidden');
+            }
+        }
+
+        function clearIngredients() {
+            if (userIngredients.length > 0 && confirm('모든 재료를 삭제하시겠습니까?')) {
+                userIngredients = [];
+                renderUserIngredients();
+                document.getElementById('recipe-recommendations').classList.add('hidden');
+                document.getElementById('no-recommendations').classList.add('hidden');
+            }
+        }
+
+        function renderUserIngredients() {
+            const container = document.getElementById('user-ingredients-container');
+            if (userIngredients.length === 0) {
+                container.innerHTML = `
+                    <div class="w-full flex flex-col items-center justify-center text-slate-400 py-4" id="empty-ingredients-message">
+                        <i data-lucide="info" class="w-10 h-10 text-slate-200 mb-2"></i>
+                        <p class="font-bold">재료를 입력하면 자동으로 레시피를 추천해 드립니다.</p>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = userIngredients.map(ing => `
+                    <div class="flex items-center gap-2 bg-white border-2 border-slate-100 px-4 py-2 rounded-xl shadow-sm group hover:border-[#E11D48] transition-all">
+                        <span class="font-black text-slate-700">${ing}</span>
+                        <button onclick="removeIngredient('${ing}')" class="text-slate-300 hover:text-red-500 transition-colors">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                `).join('');
+            }
+            lucide.createIcons();
+        }
+
+        function findRecipes() {
+            if (userIngredients.length === 0) {
+                alert('재료를 먼저 입력해 주세요!');
+                return;
+            }
+
+            const results = recipeDatabase.map(recipe => {
+                const matched = recipe.ingredients.filter(ing =>
+                    userIngredients.some(uIng =>
+                        uIng.includes(ing.name) || ing.name.includes(uIng) ||
+                        uIng.toLowerCase().includes(ing.name.toLowerCase()) ||
+                        ing.name.toLowerCase().includes(uIng.toLowerCase())
+                    )
+                );
+                const missing = recipe.ingredients.filter(ing => !matched.some(m => m.name === ing.name));
+                const score = Math.round((matched.length / recipe.ingredients.length) * 100);
+
+                return { ...recipe, matched, missing, score };
+            }).filter(r => r.score >= 20)
+                .sort((a, b) => b.score - a.score);
+
+            if (results.length === 0) {
+                document.getElementById('recipe-recommendations').classList.add('hidden');
+                document.getElementById('no-recommendations').classList.remove('hidden');
+            } else {
+                document.getElementById('no-recommendations').classList.add('hidden');
+                document.getElementById('recipe-recommendations').classList.remove('hidden');
+                document.getElementById('recommendation-count').textContent = `${results.length} Matches Found`;
+                renderRecipeCards(results);
+            }
+
+            document.getElementById('recipe-recommendations').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function renderRecipeCards(recipes) {
+            const container = document.getElementById('recipe-cards-container');
+            container.innerHTML = recipes.map(recipe => `
+                <div class="card p-6 bg-white border-none group hover:shadow-2xl transition-all flex flex-col h-full">
+                    <div class="flex-1">
+                        <div class="relative">
+                            <h3 class="text-xl font-black text-slate-800 mb-2 group-hover:text-[#E11D48] cursor-pointer transition-colors" onclick="openRecipeModal(${recipe.id})">${recipe.name}</h3>
+                            <div class="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl text-xs font-black text-[#E11D48] shadow-lg">
+                            ${recipe.score}% 일치
+                        </div>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
+                            <i data-lucide="youtube" class="w-3.5 h-3.5"></i>
+                            <span>${recipe.youtuber}</span>
+                        </div>
+                        
+                        <div class="space-y-4 mb-6">
+                            <div>
+                                <div class="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-2 flex items-center gap-1">
+                                    <i data-lucide="check-check" class="w-3 h-3 text-green-500"></i> 보유 중인 재료
+                                </div>
+                                 <div class="flex flex-wrap gap-1.5">
+                                    ${recipe.matched.map(ing => `<span class="text-[11px] font-bold px-2 py-1 bg-green-50 text-green-600 rounded-lg border border-green-100">${ing.name}</span>`).join('')}
+                                </div>
+                            </div>
+                            
+                            ${recipe.missing.length > 0 ? `
+                            <div>
+                                <div class="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-2 flex items-center gap-1">
+                                    <i data-lucide="shopping-cart" class="w-3 h-3 text-red-500"></i> 부족한 재료
+                                </div>
+                                <div class="flex flex-wrap gap-1.5">
+                                    ${recipe.missing.map(ing => `<span class="text-[11px] font-bold px-2 py-1 bg-red-50 text-red-600 rounded-lg border border-red-100">${ing.name}</span>`).join('')}
+                                </div>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center w-full">
+                        <span class="text-xs text-gray-400 font-bold flex items-center gap-1">
+                            <i data-lucide="clock" class="w-3 h-3"></i> ${recipe.time}
+                        </span>
+                        <button onclick="showRecipeDetail(${recipe.id})" class="w-full py-4 bg-slate-50 text-slate-600 rounded-xl font-black text-sm hover:bg-[#E11D48] hover:text-white hover:shadow-xl hover:shadow-red-200 transition-all flex items-center justify-center gap-2 max-w-[250px]">
+                            <span>레시피 확인하기</span>
+                            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function showRecipeDetail(id) {
+            const recipe = recipeDatabase.find(r => r.id === id);
+            if (!recipe) return;
+
+            const modal = document.getElementById('recipe-modal');
+            const content = document.getElementById('modal-content');
+
+            // Format recipe text (simple newline to br for now, or use a markdown parser if you have one)
+            const formattedRecipe = recipe.full_recipe
+                .replace(/^#+\s/gm, '') // Remove markdown headers for simplicity
+                .replace(/\n/g, '<br>');
+
+            // 1. "과정"이라는 단어와 줄바꿈 제거
+            // 2. 모든 별표(**) 제거
+            const cleanedRecipe = formattedRecipe
+                .replace(/과정\s*\n?/, "") // "과정" 뒤의 공백과 줄바꿈 제거
+                .replace(/\*\*/g, "");    // 모든 ** 제거 (g 플래그는 전체 적용)
+
+            const formattedtip = recipe.tip
+                .replace(/^#+\s/gm, '') // Remove markdown headers for simplicity
+                .replace(/\n/g, '<br>')
+                .replace('요리 팁 요약', '');
+
+            // 1. "과정"이라는 단어와 줄바꿈 제거
+            // 2. 모든 별표(**) 제거
+            const cleanedtip = formattedtip
+                .replace(/과정\s*\n?/, "") // "과정" 뒤의 공백과 줄바꿈 제거
+                .replace(/\*\*/g, "");    // 모든 ** 제거 (g 플래그는 전체 적용)
+            content.innerHTML = `
+                <div class="space-y-6">
+                    
+                    
+                    <div>
+                        <h2 class="text-3xl font-black text-slate-800 mb-2">${recipe.name}</h2>
+                        <div class="flex items-center gap-3 text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">
+                            <i data-lucide="youtube" class="w-4 h-4 text-red-500"></i>
+                            <span>${recipe.youtuber}</span>
+                        </div>
+                    </div>
+
+                    <div class="relative aspect-video rounded-3xl overflow-hidden bg-slate-100 mb-8">
+                        <a href='${recipe.youtube_url}'>
+                        ${recipe.thumbnail ? `<img src="${recipe.thumbnail}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center text-slate-300"><i data-lucide="image" class="w-12 h-12"></i></div>`}
+                        </a>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-slate-50 p-4 rounded-2xl">
+                            <div class="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">소요 시간</div>
+                            <div class="text-slate-700 font-black">${recipe.time}</div>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-2xl">
+                            <div class="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">난이도</div>
+                            <div class="text-slate-700 font-black">${recipe.difficulty}</div>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <h4 class="font-bold text-gray-900 flex items-center gap-2">
+                            <i data-lucide="shopping-basket" class="w-4 h-4 text-red-500"></i> 준비물 및 주문
+                        </h4>
+                        <div class="grid grid-cols-2 gap-2">
+                            ${recipe.ingredients.map(i => {
+                const isMatch = userIngredients.some(u => u.includes(i.name) || i.name.includes(u));
+                return `
+                                    <div class="flex items-center justify-between p-3 rounded-xl border ${isMatch ? 'bg-green-50 border-green-100' : 'bg-gray-50 border-gray-100'}">
+                                        <div class="flex items-center gap-2">
+                                            <i data-lucide="${isMatch ? 'check-circle-2' : 'help-circle'}" class="w-4 h-4 ${isMatch ? 'text-green-500' : 'text-gray-300'}"></i>
+                                            <span class="text-sm font-medium ${isMatch ? 'text-green-700' : 'text-gray-500'}">${i.name}</span>
+                                        </div>
+                                        ${!isMatch ? `
+                                            <a href="${i.url}" target="_blank"
+                                            class="text-[10px] bg-white border border-gray-200 px-2 py-1 rounded-lg font-bold text-gray-400 hover:text-red-500 hover:border-red-500 transition-all shadow-sm flex items-center gap-1">
+                                                주문 <i data-lucide="shopping-cart" class="w-2.5 h-2.5"></i>
+                                            </a>
+                                        ` : ''}
+                                    </div>
+                                `;
+            }).join('')}
+                        </div>
+                    </div>
+                    <div class="prose prose-slate max-w-none">
+                        <div class="text-[14px] font-black bold text-[#E11D48] uppercase tracking-widest mb-4 flex items-center gap-2">
+                            <i data-lucide="flame" class="w-3 h-3"></i> 조리 과정
+                        </div>
+                        <div class="text-slate-600 leading-relaxed font-medium bg-white border-2 border-slate-50 p-6 rounded-3xl">
+                            ${cleanedRecipe}
+                        </div>
+                    </div>
+
+                    ${recipe.tip ? `
+                    <div class="bg-red-50 p-6 rounded-3xl border-2 border-red-100">
+                        <div class="text-[14px] font-black bold text-[#E11D48] uppercase tracking-widest mb-2 flex items-center gap-2">
+                            <i data-lucide="lightbulb" class="w-3 h-3"></i> 셰프의 팁
+                        </div>
+                        <p class="text-red-700 font-bold text-sm leading-relaxed">${cleanedtip}</p>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            lucide.createIcons();
+        }
+
+        function closeModal() {
+            document.getElementById('recipe-modal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        function openRecipeModal(id) {
+            const recipe = recipeDatabase.find(r => r.id === id);
+            if (!recipe) return;
+
+            document.getElementById('modalTitle').innerText = recipe.name;
+            information = recipe.information.replace(/^.*?\n/, '').trim();
+            document.getElementById('modalContent').innerText = information || "상세 정보가 없습니다.";
+            const modal = document.getElementById('recipeModal');
+            modal.classList.remove('hidden');
+            modal.onclick = function (event) {
+                if (event.target === modal) closeRecipeModal();
+            };
+        }
+
+        function closeRecipeModal() {
+            document.getElementById('recipeModal').classList.add('hidden');
+        }
+    </script>
+
+    <!-- Recipe Detail Modal -->
+    <div id="recipe-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeModal()"></div>
+        <div
+            class="relative bg-white w-full max-w-2xl max-h-[90vh] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col p-2">
+            <button onclick="closeModal()"
+                class="absolute top-8 right-8 z-10 w-10 h-10 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center text-slate-400 hover:text-slate-800 transition-all shadow-lg hover:rotate-90 transition-all duration-300">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <div id="modal-content" class="overflow-y-auto flex-1 p-6 sm:p-10 custom-scrollbar">
+                <!-- Content injected here -->
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #cbd5e1;
+        }
+    </style>
+</body>

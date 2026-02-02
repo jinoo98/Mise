@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mise 요리의 준비를 위한 모든 것 - 단가 계산</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Custom Theme Variables -->
+    <style>
+        :root {
+            --background: #FAFBFC;
+            --foreground: #0f172a;
+            --card: #ffffff;
+            --card-foreground: #0f172a;
+            --popover: #ffffff;
+            --popover-foreground: #0f172a;
+            --primary: #E11D48;
+            --primary-foreground: #ffffff;
+            --secondary: #FEF2F2;
+            --secondary-foreground: #991B1B;
+            --muted: #f1f5f9;
+            --muted-foreground: #64748b;
+            --accent: #f1f5f9;
+            --accent-foreground: #0f172a;
+            --destructive: #ef4444;
+            --destructive-foreground: #f8fafc;
+            --border: #e2e8f0;
+            --input: #e2e8f0;
+            --ring: #E11D48;
+            --radius: 0.75rem;
+        }
+
+        body {
+            background-color: var(--background);
+            background-image: linear-gradient(to bottom right, #FAFBFC, #F3F4F6);
+            color: var(--foreground);
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            min-height: 100vh;
+        }
+
+        .card {
+            background-color: var(--card);
+            color: var(--card-foreground);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        .tab-active {
+            background-color: white;
+            color: var(--foreground);
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+        }
+
+        .tab-inactive {
+            color: var(--muted-foreground);
+        }
+
+        .tab-inactive:hover {
+            color: var(--foreground);
+        }
+
+        input[type="range"] {
+            accent-color: var(--primary);
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+    </style>
+</head>
+
+<body class="pb-20">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50 shadow-none">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 shadow-none">
+            <div class="flex items-center gap-3">
+                <div class="items-center">
+                    <img src="{% static 'icon/Mise_Icon.png' %}" class="w-[45px] h-[45px] inline-block">
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-red-600">Mise</h1>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Mise En Place - 요리의 준비를 위한
+                        모든 것</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- Navigation Tabs -->
+        <div class="w-full mb-8 shadow-none">
+            <div class="grid w-full grid-cols-3 bg-gray-100 p-1 rounded-lg mb-6 shadow-none">
+                <a href="{% url 'index' %}"
+                    class="tab-inactive flex flex-col items-center justify-center gap-1 py-3 rounded-xl text-xs font-bold transition-all">
+                    <i data-lucide="chef-hat" class="w-4 h-4"></i>
+                    <span>레시피 추출</span>
+                </a>
+                <a href="{% url 'price' %}"
+                    class="tab-active flex flex-col items-center justify-center gap-1 py-3 rounded-xl text-xs font-bold transition-all">
+                    <i data-lucide="calculator" class="w-4 h-4 text-[#E11D48]"></i>
+                    <span class="text-slate-900">단가 계산</span>
+                </a>
+                <a href="{% url 'matching' %}"
+                    class="tab-inactive flex flex-col items-center justify-center gap-1 py-3 rounded-xl text-xs font-bold transition-all">
+                    <i data-lucide="cooking-pot" class="w-4 h-4"></i>
+                    <span>재료 매칭</span>
+                </a>
+            </div>
+        </div>
+
+        <div id="pricing-app" class="space-y-8 animate-fade-in">
+            <div class="grid lg:grid-cols-3 gap-8">
+
+                <!-- Left Column: Search & Ingredients -->
+                <div class="lg:col-span-2 space-y-8">
+
+                    <!-- Search Card -->
+                    <div class="card overflow-visible border-none bg-white p-8">
+                        <div class="mb-6">
+                            <h2 class="text-xl font-semibold flex items-center gap-2 mb-1">
+                                <i data-lucide="utensils" class="w-7 h-7 text-[#E11D48]"></i>오늘의 요리는 무엇인가요?
+                            </h2>
+                            <p class="text-slate-400 font-medium mt-1">레시피를 검색하면 인원수에 맞는 최적의 견적을 알려드립니다.</p>
+                        </div>
+
+                        <div class="relative group">
+                            <i data-lucide="search"
+                                class="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300 group-focus-within:text-[#E11D48] transition-colors"></i>
+                            <input type="text" id="recipe-search-input" placeholder="요리 이름 검색 (예: 김치찌개, 파스타)"
+                                class="w-full pl-12 pr-6 h-14 text-lg bg-slate-50 border-2 border-transparent rounded-2xl focus:outline-none focus:border-[#E11D48] focus:bg-white transition-all shadow-inner">
+
+                            <!-- Dropdown Results -->
+                            <div id="search-results-dropdown"
+                                class="absolute w-full mt-3 bg-white border border-slate-100 rounded-2xl shadow-2xl max-h-80 overflow-y-auto z-50 hidden border-t-0 ring-1 ring-black/5">
+                                <!-- Results here -->
+                            </div>
+                        </div>
+
+                        <!-- Quick Suggestions -->
+                        <div id="recipe-suggestions" class="mt-6 flex gap-2 flex-wrap items-center">
+                            <span class="text-xs font-bold text-slate-300 uppercase tracking-wider mr-2">인기 추천:</span>
+                            <!-- Suggestions here -->
+                        </div>
+                    </div>
+
+                    <!-- Ingredients List Card -->
+                    <div id="ingredients-card" class="card border-none hidden overflow-hidden">
+                        <div class="p-8 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div
+                                    class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-500">
+                                    <i data-lucide="shopping-basket" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-black text-slate-800">필요한 재료</h3>
+                                    <p class="text-xs font-bold text-[#E11D48] uppercase tracking-tight mt-0.5">이미 있는
+                                        재료는 체크해서 제외하세요</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-8 space-y-2" id="ingredients-list">
+                            <!-- Ingredients here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Calculator -->
+                <div class="space-y-8 hidden" id="calculator-section">
+                    <div class="card border-none shadow-2xl bg-white sticky top-28 overflow-hidden">
+                        <div class="h-2 bg-gradient-to-r from-orange-400 to-[#E11D48]"></div>
+                        <div class="p-8">
+                            <h3 class="flex items-center gap-2 text-xl font-black text-slate-800">
+                                <i data-lucide="calculator" class="w-6 h-6 text-[#E11D48]"></i> 실시간 계산기
+                            </h3>
+
+                            <div class="mt-8 space-y-10">
+                                <!-- Servings Slider -->
+                                <div class="space-y-5">
+                                    <div class="flex justify-between items-center">
+                                        <label class="text-sm font-black text-slate-500 uppercase tracking-widest">인원수
+                                            설정</label>
+                                        <div id="servings-display"
+                                            class="bg-red-50 text-2xl font-black text-[#E11D48] px-4 py-1 rounded-xl min-w-[3.5rem] text-center">
+                                            2</div>
+                                    </div>
+                                    <input type="range" id="servings-slider" min="1" max="20" step="1" value="1"
+                                        class="w-full h-3 bg-slate-100 rounded-full appearance-none cursor-pointer">
+                                </div>
+
+                                <div class="h-px bg-slate-100"></div>
+
+                                <!-- Cost Display -->
+                                <div class="space-y-6">
+                                    <div class="flex justify-between items-end">
+                                        <span class="text-sm font-bold text-slate-400">총 예상 장보기 비용</span>
+                                        <span id="total-cost-display"
+                                            class="text-3xl font-black text-slate-800 tracking-tighter">0원</span>
+                                    </div>
+
+                                    <div
+                                        class="bg-[#E11D48] p-8 rounded-3xl text-white shadow-xl shadow-red-200 relative overflow-hidden group">
+                                        <div class="relative z-10">
+                                            <div
+                                                class="text-[10px] font-black opacity-60 uppercase tracking-[0.2em] mb-1">
+                                                1인분 평균 단가</div>
+                                            <div id="cost-per-serving-display"
+                                                class="text-5xl font-black tracking-tighter">0원</div>
+                                        </div>
+                                        <i data-lucide="flame"
+                                            class="absolute -right-4 -bottom-4 w-28 h-28 opacity-10 rotate-12 text-white group-hover:rotate-0 transition-transform duration-500"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Smart Shopping List Section -->
+            <div id="shopping-list-card" class="card border-none overflow-hidden hidden animate-fade-in shadow-2xl">
+                <div class="p-8 bg-slate-900 text-white relative">
+                    <div
+                        class="absolute top-0 right-0 w-32 h-32 bg-[#E11D48] opacity-20 blur-3xl -mr-10 -mt-10 rounded-full">
+                    </div>
+                    <div
+                        class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
+                        <div class="flex items-center gap-4">
+                            <div
+                                class="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-green-400">
+                                <i data-lucide="check-circle-2" class="w-7 h-7"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-black tracking-tight">스마트 장보기 리스트</h3>
+                                <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">실시간 구매 현황 체크
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div id="shopping-progress-text"
+                                class="text-xs font-black text-slate-400 uppercase tracking-widest">0% 완료</div>
+                            <div class="w-32 h-2 bg-white/10 rounded-full overflow-hidden">
+                                <div id="shopping-progress-bar" class="h-full bg-green-500 transition-all duration-500"
+                                    style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-slate-50 grid lg:grid-cols-2 gap-px" id="shopping-list-grid">
+                    <!-- Shopping items here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    {{ recipes_data|json_script:"recipes-data" }}
+
+    <script>
+        // Global Lucide Init
+        lucide.createIcons();
+
+        document.addEventListener("DOMContentLoaded", function () {
+            // 1. Data
+            const recipesData = JSON.parse(document.getElementById('recipes-data').textContent);
+
+            // 2. State
+            let selectedRecipe = null;
+            let targetServings = 2;
+            let excludedItems = {};  // Items the user already has
+            let purchasedItems = {}; // Items the user is buying now
+
+            // 3. UI Hooks
+            const searchInput = document.getElementById('recipe-search-input');
+            const searchDropdown = document.getElementById('search-results-dropdown');
+            const suggestionsDiv = document.getElementById('recipe-suggestions');
+            const ingredientsCard = document.getElementById('ingredients-card');
+            const ingredientsList = document.getElementById('ingredients-list');
+            const calculatorSection = document.getElementById('calculator-section');
+            const servingsDisplay = document.getElementById('servings-display');
+            const servingsSlider = document.getElementById('servings-slider');
+            const totalCostDisplay = document.getElementById('total-cost-display');
+            const costPerServingDisplay = document.getElementById('cost-per-serving-display');
+            const shoppingListCard = document.getElementById('shopping-list-card');
+            const shoppingListGrid = document.getElementById('shopping-list-grid');
+            const shoppingProgressBar = document.getElementById('shopping-progress-bar');
+            const shoppingProgressText = document.getElementById('shopping-progress-text');
+
+            // --- Init ---
+            renderSuggestions();
+
+            // --- Handlers ---
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase().trim();
+                if (query.length > 0) {
+                    const filtered = recipesData.filter(r => r.name.toLowerCase().includes(query));
+                    renderDropdown(filtered);
+                } else {
+                    searchDropdown.classList.add('hidden');
+                }
+            });
+
+            searchInput.addEventListener('focus', () => {
+                const query = searchInput.value.toLowerCase().trim();
+                if (query.length > 0) {
+                    const filtered = recipesData.filter(r => r.name.toLowerCase().includes(query));
+                    renderDropdown(filtered);
+                }
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!searchInput.contains(e.target) && !searchDropdown.contains(e.target)) {
+                    searchDropdown.classList.add('hidden');
+                }
+            });
+
+            servingsSlider.addEventListener('input', (e) => {
+                targetServings = parseInt(e.target.value);
+                servingsDisplay.textContent = targetServings;
+                updateCalculations();
+            });
+
+            // --- UI Functions ---
+            function handleUrlCheck(event, url) {
+                // 1. 클릭 이벤트가 상위 요소(item.onclick)로 퍼지는 것을 방지
+                event.stopPropagation();
+
+                // 2. URL이 제대로 된 주소인지 검사 (http로 시작하고 www가 포함되어 있는지)
+                // 혹은 서버가 보낸 메시지(한글 포함 등)인지 확인
+                const isValidUrl = url.startsWith('http') && url.includes('www.');
+
+                if (!isValidUrl) {
+                    event.preventDefault(); // 페이지 이동 차단
+                    alert("유효하지 않은 상품 링크입니다.");
+                    return false;
+                }
+                return true;
+            }
+
+            function renderSuggestions() {
+                suggestionsDiv.innerHTML = '<span class="text-[10px] font-black text-slate-300 uppercase tracking-widest mr-2">인기 추천:</span>';
+                recipesData.slice(-5).reverse().forEach(recipe => {
+                    const badge = document.createElement('span');
+                    badge.className = "cursor-pointer bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-black text-slate-500 hover:bg-[#E11D48] hover:text-white hover:border-[#E11D48] hover:shadow-lg hover:shadow-red-100 transition-all";
+                    badge.textContent = recipe.name;
+                    badge.onclick = () => selectRecipe(recipe);
+                    suggestionsDiv.appendChild(badge);
+                });
+            }
+
+            function renderDropdown(recipes) {
+                searchDropdown.innerHTML = '';
+                if (recipes.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = "px-6 py-6 text-center text-slate-400 text-sm font-bold italic";
+                    empty.textContent = "검색된 레시피가 없습니다.";
+                    searchDropdown.appendChild(empty);
+                } else {
+                    recipes.forEach(recipe => {
+                        const item = document.createElement('div');
+                        item.className = "px-6 py-5 hover:bg-slate-50 cursor-pointer flex items-center justify-between border-b border-slate-50 last:border-none group transition-all";
+                        item.innerHTML = `
+                            <div class="flex items-center gap-4">
+                                <div class="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center text-orange-500 group-hover:bg-[#E11D48] group-hover:text-white transition-all">
+                                    <i data-lucide="utensils-cross" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <div class="font-black text-slate-700 group-hover:text-[#E11D48] transition-colors text-lg">${recipe.name}</div>
+                                    <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Recipe ID: ${Math.floor(Math.random() * 1000)}</div>
+                                </div>
+                            </div>
+                            <span class="text-xs font-black bg-slate-100 text-slate-500 px-3 py-1.5 rounded-xl">기준 ${recipe.baseServings}인분</span>
+                        `;
+                        item.onclick = () => selectRecipe(recipe);
+                        searchDropdown.appendChild(item);
+                    });
+                }
+                searchDropdown.classList.remove('hidden');
+                lucide.createIcons();
+            }
+
+            function selectRecipe(recipe) {
+                selectedRecipe = recipe;
+                searchInput.value = recipe.name;
+                searchDropdown.classList.add('hidden');
+                excludedItems = {};
+                purchasedItems = {};
+
+                targetServings = recipe.baseServings || 2;
+                servingsSlider.value = targetServings;
+                servingsDisplay.textContent = targetServings;
+
+                ingredientsCard.classList.remove('hidden');
+                calculatorSection.classList.remove('hidden');
+
+                updateCalculations();
+
+                // Scroll into view gently
+                ingredientsCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            function toggleExclude(name) {
+                excludedItems[name] = !excludedItems[name];
+                if (excludedItems[name]) purchasedItems[name] = false;
+                updateCalculations();
+            }
+
+            function togglePurchase(name) {
+                purchasedItems[name] = !purchasedItems[name];
+                renderShoppingList();
+            }
+
+            function updateCalculations() {
+                if (!selectedRecipe) return;
+
+                const ratio = targetServings / selectedRecipe.baseServings;
+                const buyingTotal = selectedRecipe.ingredients.reduce((sum, ing) => {
+                    if (excludedItems[ing.name]) return sum;
+                    return sum + Math.round(ing.price * ratio);
+                }, 0);
+
+                const perServing = targetServings > 0 ? Math.round(buyingTotal / targetServings) : 0;
+
+                totalCostDisplay.textContent = buyingTotal.toLocaleString() + '원';
+                costPerServingDisplay.textContent = perServing.toLocaleString() + '원';
+
+                renderIngredients(buyingTotal, ratio);
+                renderShoppingList();
+            }
+
+            function getScaledQty(qtyStr, ratio) {
+                if (!qtyStr) return "적당량";
+                const match = qtyStr.match(/(\d+\/\d+)|(\d+(\.\d+)?)/);
+                if (!match) return qtyStr;
+
+                const original = match[0];
+                let val;
+                if (original.includes('/')) {
+                    const [n, d] = original.split('/').map(Number);
+                    val = n / d;
+                } else {
+                    val = parseFloat(original);
+                }
+
+                const scaled = val * ratio;
+                let display;
+                if (Math.abs(scaled - 0.5) < 0.01) display = "1/2";
+                else if (Math.abs(scaled - 0.25) < 0.01) display = "1/4";
+                else if (Math.abs(scaled - 0.75) < 0.01) display = "3/4";
+                else if (Number.isInteger(scaled)) display = scaled.toString();
+                else display = scaled.toFixed(1).replace(/\.0$/, '');
+
+                return qtyStr.replace(original, display);
+            }
+
+            function renderIngredients(totalBuying, ratio) {
+                ingredientsList.innerHTML = '';
+                selectedRecipe.ingredients.forEach((ing) => {
+                    const isX = excludedItems[ing.name];
+                    const scaledPrice = Math.round(ing.price * ratio);
+                    const percent = (totalBuying > 0 && !isX) ? (scaledPrice / totalBuying) * 100 : 0;
+
+                    const row = document.createElement('div');
+                    row.className = `group cursor-pointer p-4 rounded-2xl hover:bg-slate-50 transition-all border-b border-transparent ${isX ? 'opacity-30' : 'opacity-100'}`;
+
+                    row.onclick = (e) => {
+                        if (e.target.closest('a')) return;
+                        toggleExclude(ing.name);
+                    };
+
+                    const nameContent = ing.url
+                        ? `<a href="${ing.url}" target="_blank" class="text-blue-600 hover:text-[#E11D48] font-bold flex items-center gap-1 group-hover:scale-105 transition-transform origin-left">${ing.name}<i data-lucide="external-link" class="w-3 h-3"></i></a>`
+                        : `<span class="font-bold text-slate-700">${ing.name}</span>`;
+
+                    row.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center gap-4">
+                                <div class="w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${isX ? 'bg-[#E11D48] border-[#E11D48]' : 'border-slate-200 group-hover:border-[#E11D48]'}">
+                                    ${isX ? '<i data-lucide="check" class="w-4 h-4 text-white"></i>' : ''}
+                                </div>
+                                <div>
+                                    <div class="${isX ? 'line-through text-slate-400' : 'text-slate-800 text-lg'} font-black">${ing.name}</div>
+                                    <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">1인분당 재료량: ${ing.quantity || 'N/A'}</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-xl font-black ${isX ? 'text-slate-300' : 'text-slate-800'}">${scaledPrice.toLocaleString()}원</div>
+                                <div class="text-[9px] font-black text-slate-400 uppercase tracking-[0.1em] mt-1">1인분당 금액: ${(ing.price / 2).toLocaleString()}원</div>
+                            </div>
+                        </div>
+                        ${!isX ? `
+                        <div class="h-1.5 w-full bg-slate-100 rounded-full mt-4 overflow-hidden shadow-inner">
+                            <div class="h-full bg-gradient-to-r from-orange-400 to-[#E11D48] transition-all duration-700 ease-out" style="width: ${percent}%"></div>
+                        </div>` : ''}
+                    `;
+                    ingredientsList.appendChild(row);
+                });
+                lucide.createIcons();
+            }
+
+            function renderShoppingList() {
+                if (!selectedRecipe) return;
+                const needed = selectedRecipe.ingredients.filter(ing => !excludedItems[ing.name]);
+
+                if (needed.length === 0) {
+                    shoppingListCard.classList.add('hidden');
+                    return;
+                }
+
+                shoppingListCard.classList.remove('hidden');
+                shoppingListGrid.innerHTML = '';
+                const ratio = targetServings / selectedRecipe.baseServings;
+                let done = 0;
+
+                needed.forEach((ing) => {
+                    const isDone = purchasedItems[ing.name] || false;
+                    if (isDone) done++;
+
+                    const item = document.createElement('div');
+                    item.className = `flex flex-col p-8 bg-white transition-all cursor-pointer hover:bg-slate-50 border-r border-b sm:even:border-r-0 last:border-b-0 ${isDone ? 'bg-slate-50' : ''}`;
+                    item.onclick = () => togglePurchase(ing.name);
+
+                    item.innerHTML = `
+                        <div class="flex items-start gap-5">
+                            <div class="w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all mt-1 ${isDone ? 'bg-green-500 border-green-500 shadow-lg shadow-green-100' : 'border-slate-200'}">
+                                ${isDone ? '<i data-lucide="check" class="w-5 h-5 text-white"></i>' : ''}
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-xl font-black transition-all ${isDone ? 'line-through text-slate-300' : 'text-slate-800'}">
+                                    ${ing.name}
+                                </div>
+                                <div class="text-sm font-black mt-2 inline-block px-3 py-1 rounded-lg ${isDone ? 'bg-slate-100 text-slate-400' : 'bg-red-50 text-[#E11D48]'}">
+                                    필요 분량: ${getScaledQty(ing.quantity, ratio)}
+                                </div>
+                                <div class="mt-6 flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-800 transition-colors">
+                                    <span><a href="${ing.url}" 
+                                        target="_blank" 
+                                        onclick="return handleUrlCheck(event, '${ing.url}')"
+                                        class="text-blue-600 hover:text-[#E11D48] font-bold flex items-center gap-1 group-hover:scale-105 transition-transform origin-left">
+                                            <i data-lucide="external-link" class="w-3 h-3"></i>
+                                            상품 최저가 확인하기
+                                        </a>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    shoppingListGrid.appendChild(item);
+                });
+
+                const progress = Math.round((done / needed.length) * 100);
+                shoppingProgressBar.style.width = progress + '%';
+                shoppingProgressText.textContent = `${progress}% 완료`;
+
+                lucide.createIcons();
+            }
+        });
+
+
+    </script>
+</body>
+
+</html>
